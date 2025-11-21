@@ -26,7 +26,7 @@ test.describe('Login tests', () => {
   });
 
   invalidLoginScenarios.forEach(({ name, username, password, expectedMessage }) => {
-    test(`invalid login – ${name}`, async ({ loginPage }) => {
+    test(`invalid login - ${name}`, async ({ loginPage }) => {
       // Open page
       await loginPage.goto();
 

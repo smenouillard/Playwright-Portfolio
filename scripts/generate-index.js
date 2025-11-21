@@ -1,0 +1,201 @@
+// /scripts/generate-index.js
+
+const fs = require('fs');
+const path = require('path');
+
+// Load HTML template
+const templatePath = path.join(__dirname, 'templates', 'index.html');
+let template = fs.readFileSync(templatePath, 'utf8');
+
+// Load global metadata
+const globalMeta = JSON.parse(process.env.METADATA_JSON);
+
+// Define OS badges
+const osBadges = {
+  "ubuntu-latest": { emoji: "🐧", label: "Ubuntu" },
+  "windows-latest": { emoji: "🪟", label: "Windows" },
+  "macos-latest": { emoji: "🍎", label: "macOS" }
+};
+
+// Define browser badges
+const browserBadges = {
+  "firefox": { emoji: "🦊", label: "Firefox" },
+  "chromium": { emoji: "🌐", label: "Chromium" },
+  "webkit": { emoji: "🍏", label: "WebKit" },
+  "edge": { emoji: "🟦", label: "Edge" }
+};
+
+const reportsDir = path.join(process.cwd(), 'reports');
+
+// Parse JUnit XML
+function parseJUnitSummary(xml) {
+  const suiteRegex = /<testsuite\b([^>]*)>/g;
+
+  let totalTests = 0;
+  let totalFailures = 0;
+  let totalSkipped = 0;
+  let totalTime = 0;
+
+  let match;
+  while ((match = suiteRegex.exec(xml)) !== null) {
+    const attrs = match[1];
+
+    function getAttr(name) {
+      const re = new RegExp(name + '="([^"]+)"');
+      const m = re.exec(attrs);
+      return m ? m[1] : null;
+    }
+
+    totalTests += parseInt(getAttr('tests') || '0', 10);
+    totalFailures += parseInt(getAttr('failures') || '0', 10);
+    totalSkipped += parseInt(getAttr('skipped') || '0', 10);
+    totalTime += parseFloat(getAttr('time') || '0');
+  }
+
+  return { totalTests, totalFailures, totalSkipped, totalTime };
+}
+
+// Format duration
+function formatDuration(sec) {
+  const seconds = Math.round(sec);
+  const minutes = Math.floor(seconds / 60);
+  const remain = seconds % 60;
+  return minutes > 0 ? `${minutes}m ${remain}s` : `${remain}s`;
+}
+
+// Determine status pill
+function statusInfo(summary) {
+  if (summary.totalFailures > 0)
+    return { text: "FAIL", emoji: "🔴", css: "pill-fail", code: "fail" };
+  if (summary.totalSkipped > 0)
+    return { text: "SKIPPED", emoji: "🟡", css: "pill-skip", code: "skip" };
+  if (summary.totalTests > 0)
+    return { text: "PASS", emoji: "🟢", css: "pill-pass", code: "pass" };
+  return { text: "NO TESTS", emoji: "⚪", css: "pill-none", code: "none" };
+}
+
+// Collect entries
+let entries = [];
+
+const dirs = fs.readdirSync(reportsDir, { withFileTypes: true }).filter(d => d.isDirectory());
+
+dirs.forEach(dir => {
+  const name = dir.name;
+  const metadataPath = path.join(reportsDir, name, 'metadata', 'metadata.json');
+
+  if (!fs.existsSync(metadataPath)) return;
+
+  const info = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
+
+  // Read JUnit report
+  const junitPath = path.join(reportsDir, name, 'junit', 'test-results.xml');
+  let summary = { totalTests: 0, totalFailures: 0, totalSkipped: 0, totalTime: 0 };
+
+  if (fs.existsSync(junitPath)) {
+    const xml = fs.readFileSync(junitPath, 'utf8');
+    summary = parseJUnitSummary(xml);
+  }
+
+  const status = statusInfo(summary);
+
+  entries.push({
+    name,
+    info,
+    summary,
+    duration: formatDuration(summary.totalTime),
+    status,
+    os: osBadges[info.os] || { emoji: "💻", label: info.os },
+    browser: browserBadges[info.browser] || { emoji: "🌐", label: info.browser }
+  });
+});
+
+// Sort entries
+entries.sort((a, b) => {
+  const order = { fail: 0, skip: 1, pass: 2, none: 3 };
+  return order[a.status.code] - order[b.status.code];
+});
+
+// Build summary table
+let summaryTable = `
+<table class="summary">
+<tr>
+  <th>Status</th>
+  <th>OS</th>
+  <th>Browser</th>
+  <th>Total</th>
+  <th>Failures</th>
+  <th>Skipped</th>
+  <th>Duration</th>
+</tr>`;
+
+entries.forEach(e => {
+  summaryTable += `
+<tr class="summary-row" data-status="${e.status.code}">
+  <td class="status-cell">
+    <span class="status-pill ${e.status.css}">
+      ${e.status.emoji} ${e.status.text}
+    </span>
+  </td>
+  <td>${e.os.emoji} ${e.os.label}</td>
+  <td>${e.browser.emoji} ${e.browser.label}</td>
+  <td class="num-cell">${e.summary.totalTests}</td>
+  <td class="num-cell">${e.summary.totalFailures}</td>
+  <td class="num-cell">${e.summary.totalSkipped}</td>
+  <td>${e.duration}</td>
+</tr>`;
+});
+
+summaryTable += `</table>`;
+
+// Build detailed report blocks
+let reportBlocks = "";
+
+entries.forEach(e => {
+  reportBlocks += `
+<div class="report-block" data-status="${e.status.code}">
+  <div class="report-header">
+    <div class="report-header-main">
+      <span class="status-pill ${e.status.css}">
+        ${e.status.emoji} ${e.status.text}
+      </span>
+      <span>
+        <span class="badge os-badge">${e.os.emoji} ${e.os.label}</span>
+        <span class="badge browser-badge">${e.browser.emoji} ${e.browser.label}</span>
+      </span>
+    </div>
+    <span class="caret">▼</span>
+  </div>
+
+  <div class="report-content">
+    <p>
+      📊 ${e.summary.totalTests} tests  
+      • ⚠ ${e.summary.totalFailures} failed  
+      • ➖ ${e.summary.totalSkipped} skipped<br>
+      ⏱ Duration: ${e.duration}<br>
+      Executed at: ${e.info.timestamp}<br>
+      Runner: ${e.info.runner}
+    </p>
+
+    <div class="links">
+      <a href="${globalMeta.runUrl}">📘 Logs</a>
+      <a href="${e.name}/playwright-report/index.html">📄 HTML Report</a>
+      <a href="${e.name}/jsonReports/jsonReport.json">🧩 JSON</a>
+      <a href="${e.name}/junit/test-results.xml">📑 XML</a>
+    </div>
+  </div>
+</div>`;
+});
+
+// Inject into template
+template = template
+  .replace('{{PUBLISH_TIMESTAMP}}', globalMeta.publishTimestamp)
+  .replace('{{COMMIT_SHA}}', globalMeta.commitSha)
+  .replace('{{RUN_NUMBER}}', globalMeta.runNumber)
+  .replace('{{RUN_URL}}', globalMeta.runUrl)
+  .replace('{{SUMMARY_TABLE}}', summaryTable)
+  .replace('{{REPORT_LIST}}', reportBlocks);
+
+// Write final index.html
+fs.writeFileSync(path.join(reportsDir, 'index.html'), template);
+
+console.log("Portfolio 2025 dashboard generated successfully.");

@@ -1,39 +1,35 @@
-// playwright.config.ts
+// /playwright.config.ts
 
 import { defineConfig, devices } from '@playwright/test';
-import * as dotenv from 'dotenv';
+import dotenv from 'dotenv';
 
-// Load .env file
+// Load env variables
 dotenv.config();
 
 export default defineConfig({
   // Set test directory
-  testDir: './tests/specs',
+  testDir: './tests',
 
   // Set timeouts
   timeout: 30_000,
   expect: { timeout: 5_000 },
 
-  // Enable parallel mode
-  fullyParallel: true,
-
-  // Set retries
-  retries: 1,
-
-  // Set default browser behavior
+  // Set default test behavior
   use: {
     baseURL: 'https://the-internet.herokuapp.com',
+    headless: !!process.env.CI,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
     actionTimeout: 10_000,
   },
 
-  // Set reporters
+  // Configure reporters for dashboard generator
   reporter: [
     ['list'],
-    ['html', { open: 'never', outputFolder: 'reports/html' }],
-    ['junit', { outputFile: 'reports/junit/results.xml' }],
+    ['json', { outputFile: 'jsonReports/jsonReport.json' }],
+    ['html', { outputFolder: 'playwright-report', open: 'never' }],
+    ['junit', { outputFile: 'junit/test-results.xml' }],
   ],
 
   // Define browser projects
@@ -44,6 +40,6 @@ export default defineConfig({
     { name: 'edge', use: { ...devices['Desktop Edge'], channel: 'msedge' } },
   ],
 
-  // Adjust workers on CI
-  workers: process.env.GITHUB_ACTIONS ? 2 : undefined,
+  // Adjust number of workers for CI
+  workers: process.env.CI ? 2 : undefined,
 });
