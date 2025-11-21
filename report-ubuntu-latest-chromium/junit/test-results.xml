@@ -1,0 +1,16 @@
+<testsuites id="" name="" tests="6" failures="0" skipped="0" errors="0" time="8.623384">
+<testsuite name="specs/login.spec.ts" timestamp="2025-11-21T20:25:56.097Z" hostname="chromium" tests="6" failures="0" skipped="0" time="7.024" errors="0">
+<testcase name="Login tests › valid login redirects to secure area" classname="specs/login.spec.ts" time="1.286">
+</testcase>
+<testcase name="Login tests › invalid login - invalid username" classname="specs/login.spec.ts" time="1.17">
+</testcase>
+<testcase name="Login tests › invalid login - invalid password" classname="specs/login.spec.ts" time="1.156">
+</testcase>
+<testcase name="Login tests › invalid login - empty username" classname="specs/login.spec.ts" time="1.138">
+</testcase>
+<testcase name="Login tests › invalid login - empty password" classname="specs/login.spec.ts" time="1.127">
+</testcase>
+<testcase name="Login tests › invalid login - both fields empty" classname="specs/login.spec.ts" time="1.147">
+</testcase>
+</testsuite>
+</testsuites>

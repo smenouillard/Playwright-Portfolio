@@ -1,0 +1,16 @@
+<testsuites id="" name="" tests="6" failures="0" skipped="0" errors="0" time="43.898408">
+<testsuite name="specs\login.spec.ts" timestamp="2025-11-21T20:28:59.032Z" hostname="edge" tests="6" failures="0" skipped="0" time="12.181" errors="0">
+<testcase name="Login tests › valid login redirects to secure area" classname="specs\login.spec.ts" time="3.71">
+</testcase>
+<testcase name="Login tests › invalid login - invalid username" classname="specs\login.spec.ts" time="1.997">
+</testcase>
+<testcase name="Login tests › invalid login - invalid password" classname="specs\login.spec.ts" time="1.6">
+</testcase>
+<testcase name="Login tests › invalid login - empty username" classname="specs\login.spec.ts" time="1.829">
+</testcase>
+<testcase name="Login tests › invalid login - empty password" classname="specs\login.spec.ts" time="1.562">
+</testcase>
+<testcase name="Login tests › invalid login - both fields empty" classname="specs\login.spec.ts" time="1.483">
+</testcase>
+</testsuite>
+</testsuites>
